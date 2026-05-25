@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-26
 **Status:** Approved design
-**Repo:** https://github.com/bubbleee030/Preview
+**Repo:** https://github.com/bubbleee030/Peek
 **App display name:** Peek · **Bundle id:** `com.bubbleee030.peek`
 
 ## Problem
