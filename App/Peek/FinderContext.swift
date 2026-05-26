@@ -9,6 +9,9 @@ final class FinderContext {
     private let script: NSAppleScript?
     private(set) var selectedURLs: [URL] = []
 
+    /// Called on the main actor whenever the Finder selection changes.
+    var onSelectionChange: (() -> Void)?
+
     init() {
         let source = """
         tell application "Finder"
@@ -24,7 +27,7 @@ final class FinderContext {
 
     func start() {
         timer?.invalidate()
-        let timer = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.12, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.poll() }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -40,9 +43,12 @@ final class FinderContext {
         let result = script.executeAndReturnError(&errorInfo)
         guard errorInfo == nil else { return } // e.g. Automation permission not yet granted
         let text = result.stringValue ?? ""
-        selectedURLs = text
+        let urls = text
             .split(separator: "\n")
             .map { URL(fileURLWithPath: String($0)) }
+        guard urls != selectedURLs else { return }
+        selectedURLs = urls
+        onSelectionChange?()
     }
 
     /// The single selected item, only if it is a folder or supported archive.

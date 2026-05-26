@@ -48,6 +48,22 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
+        let arrowHeader = NSMenuItem(title: "Arrow Keys", action: nil, keyEquivalent: "")
+        arrowHeader.isEnabled = false
+        menu.addItem(arrowHeader)
+
+        let navItem = NSMenuItem(title: "Navigate Finder (Quick Look style)", action: #selector(useFinderNavigation), keyEquivalent: "")
+        navItem.target = self
+        navItem.state = AppSettings.arrowMode == .finderNavigation ? .on : .off
+        menu.addItem(navItem)
+
+        let scrollItem = NSMenuItem(title: "Scroll the Preview", action: #selector(usePreviewScroll), keyEquivalent: "")
+        scrollItem.target = self
+        scrollItem.state = AppSettings.arrowMode == .previewScroll ? .on : .off
+        menu.addItem(scrollItem)
+
+        menu.addItem(.separator())
+
         let hideItem = NSMenuItem(title: "Hide Menu-Bar Icon", action: #selector(hideIcon), keyEquivalent: "")
         hideItem.target = self
         menu.addItem(hideItem)
@@ -66,6 +82,16 @@ final class MenuBarController: NSObject {
 
     @objc private func toggleZoom() {
         AppSettings.zoomEffect.toggle()
+        rebuildMenu()
+    }
+
+    @objc private func useFinderNavigation() {
+        AppSettings.arrowMode = .finderNavigation
+        rebuildMenu()
+    }
+
+    @objc private func usePreviewScroll() {
+        AppSettings.arrowMode = .previewScroll
         rebuildMenu()
     }
 

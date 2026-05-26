@@ -4,6 +4,7 @@ import PeekCore
 
 struct PreviewView: View {
     @ObservedObject var model: PreviewViewModel
+    @State private var selection: PreviewItem.ID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,7 +51,7 @@ struct PreviewView: View {
             if contents.items.isEmpty {
                 Text("Empty").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(contents.items) { item in
+                List(contents.items, selection: $selection) { item in
                     row(item)
                 }
                 .listStyle(.inset)
