@@ -51,23 +51,50 @@ struct PreviewView: View {
                 Text("Empty").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(contents.items) { item in
-                    HStack(spacing: 8) {
-                        Image(systemName: item.isDirectory ? "folder" : "doc")
-                            .foregroundStyle(item.isDirectory ? Color.accentColor : Color.secondary)
-                        Text(item.name).lineLimit(1).truncationMode(.middle)
-                        Spacer()
-                        if !item.isDirectory {
-                            Text(Self.size(item.sizeBytes)).foregroundStyle(.secondary)
-                                .font(.callout).monospacedDigit()
-                        }
-                    }
+                    row(item)
                 }
                 .listStyle(.inset)
             }
         }
     }
 
+    private func row(_ item: PreviewItem) -> some View {
+        HStack(spacing: 8) {
+            Image(nsImage: FileIcon.image(for: item))
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 18, height: 18)
+            Text(item.name)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 12)
+            if let modified = item.modified {
+                Text(Self.date(modified))
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+            Text(item.isDirectory ? "—" : Self.size(item.sizeBytes))
+                .font(.callout)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 64, alignment: .trailing)
+        }
+        .padding(.vertical, 1)
+    }
+
     private static func size(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static func date(_ date: Date) -> String {
+        dateFormatter.string(from: date)
     }
 }

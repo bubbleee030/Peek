@@ -41,6 +41,11 @@ final class MenuBarController: NSObject {
         loginItem.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
         menu.addItem(loginItem)
 
+        let zoomItem = NSMenuItem(title: "Zoom Effect When Opening", action: #selector(toggleZoom), keyEquivalent: "")
+        zoomItem.target = self
+        zoomItem.state = AppSettings.zoomEffect ? .on : .off
+        menu.addItem(zoomItem)
+
         menu.addItem(.separator())
 
         let hideItem = NSMenuItem(title: "Hide Menu-Bar Icon", action: #selector(hideIcon), keyEquivalent: "")
@@ -56,6 +61,11 @@ final class MenuBarController: NSObject {
     @objc private func grantAccessibility() {
         keyTap.requestAccessibility()
         _ = keyTap.start()
+        rebuildMenu()
+    }
+
+    @objc private func toggleZoom() {
+        AppSettings.zoomEffect.toggle()
         rebuildMenu()
     }
 

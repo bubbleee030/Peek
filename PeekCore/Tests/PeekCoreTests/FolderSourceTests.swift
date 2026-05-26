@@ -46,4 +46,16 @@ final class FolderSourceTests: XCTestCase {
             }
         }
     }
+
+    func testItemsCarryOnDiskURL() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try "x".write(to: dir.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+
+        let contents = try FolderSource(url: dir).read()
+        let item = try XCTUnwrap(contents.items.first)
+        XCTAssertEqual(item.url?.lastPathComponent, "a.txt")
+        XCTAssertEqual(item.url?.deletingLastPathComponent().standardizedFileURL,
+                       dir.standardizedFileURL)
+    }
 }

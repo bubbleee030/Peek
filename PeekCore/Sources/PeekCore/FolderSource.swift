@@ -32,7 +32,8 @@ public struct FolderSource: ContentSource {
                 name: name,
                 isDirectory: isDir,
                 sizeBytes: size,
-                modified: values?.contentModificationDate
+                modified: values?.contentModificationDate,
+                url: entry
             ))
             total += size
         }

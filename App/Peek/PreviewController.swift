@@ -23,11 +23,27 @@ final class PreviewController {
         panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
         panel.contentView = hosting
-        positionNearMouse(panel)
 
+        let target = centeredFrame(for: panel)
         self.panel = panel
         NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
+
+        if AppSettings.zoomEffect {
+            // Quick Look–style zoom: start slightly smaller and transparent,
+            // then spring out to the final centered frame.
+            panel.setFrame(start(from: target), display: false)
+            panel.alphaValue = 0
+            panel.makeKeyAndOrderFront(nil)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                panel.animator().setFrame(target, display: true)
+                panel.animator().alphaValue = 1
+            }
+        } else {
+            panel.setFrame(target, display: false)
+            panel.makeKeyAndOrderFront(nil)
+        }
         model.load()
 
         // Esc or space closes; click-away (resignKey) closes.
@@ -56,15 +72,25 @@ final class PreviewController {
         panel = nil
     }
 
-    private func positionNearMouse(_ panel: NSPanel) {
+    /// Final frame: centered on the screen the pointer is on (falling back to the
+    /// main screen), like the system Quick Look panel.
+    private func centeredFrame(for panel: NSPanel) -> NSRect {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
-        guard let visible = screen?.visibleFrame else { panel.center(); return }
+        let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let size = panel.frame.size
         let origin = NSPoint(
-            x: min(max(mouse.x - size.width / 2, visible.minX), visible.maxX - size.width),
-            y: min(max(mouse.y - size.height / 2, visible.minY), visible.maxY - size.height)
+            x: visible.midX - size.width / 2,
+            y: visible.midY - size.height / 2
         )
-        panel.setFrameOrigin(origin)
+        return NSRect(origin: origin, size: size)
+    }
+
+    /// A slightly smaller rect sharing the same center, for the zoom-in start.
+    private func start(from target: NSRect) -> NSRect {
+        let scale: CGFloat = 0.92
+        let w = target.width * scale
+        let h = target.height * scale
+        return NSRect(x: target.midX - w / 2, y: target.midY - h / 2, width: w, height: h)
     }
 }
