@@ -8,7 +8,7 @@ Finder shows you a big useless icon when you Quick Look a folder or a `.zip`.
 **Peek** fixes that one thing: hit **space** and get a real listing of what's
 inside. Everything else still uses macOS's native Quick Look, untouched.
 
-[![Download](https://img.shields.io/badge/Download-Peek%201.0-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bubbleee030/Peek/releases/latest)
+[![Download](https://img.shields.io/badge/Download-Peek%201.0.0-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/bubbleee030/Peek/releases/latest)
 &nbsp;
 ![Platform](https://img.shields.io/badge/macOS-13%2B-000000?style=for-the-badge&logo=apple&logoColor=white)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-required-555?style=for-the-badge)
