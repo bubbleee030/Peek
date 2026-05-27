@@ -31,8 +31,8 @@ inside. Everything else still uses macOS's native Quick Look, untouched.
 
 ## Download & install
 
-1. **[⬇️ Download the latest release](https://github.com/bubbleee030/Peek/releases/latest)** (`Peek-1.0.zip`).
-2. Unzip it and drag **Peek.app** into your **Applications** folder.
+1. **[⬇️ Download the latest release](https://github.com/bubbleee030/Peek/releases/latest)** — grab `Peek-1.0.0.dmg` (or the `.zip` if you prefer).
+2. Open the `.dmg` and **drag Peek into the Applications folder** (with the `.zip`, just unzip and move **Peek.app** to Applications).
 3. Peek is a small personal app and **isn't notarized by Apple**, so the first
    launch shows a warning. Pick one:
    - **Right-click Peek.app → Open**, then click **Open** in the dialog, **or**
@@ -42,7 +42,7 @@ inside. Everything else still uses macOS's native Quick Look, untouched.
      ```
 4. Launch Peek. Look for the **eye icon in your menu bar**.
 
-> Prefer to build it yourself? See [Build from source](#-build-from-source).
+> Prefer to build it yourself? See [Build from source](#build-from-source).
 
 ### Grant two permissions (one time)
 
