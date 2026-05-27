@@ -1,6 +1,6 @@
 <div align="center">
 
-# 👁 Peek
+# Peek
 
 ### See *inside* folders and archives — just press space.
 
@@ -17,19 +17,19 @@ inside. Everything else still uses macOS's native Quick Look, untouched.
 
 ---
 
-## ✨ What it does
+## What it does
 
 | | |
 |---|---|
-| 📁 **Folders** | Press space → live listing of the contents: real Finder icons, sizes, and dates, folders first. |
-| 🗜 **Archives** | `.zip` · `.zipx` · `.tar` · `.tar.gz` · `.tgz` · `.gz` — listed **without extracting**, via the system `libarchive`. |
-| ⬅️➡️ **Quick Look feel** | The panel zooms out of the selected icon. Arrow keys move the Finder selection and Peek follows live. |
-| 🤝 **Stays out of the way** | Anything that isn't a folder/archive falls straight through to macOS's native Quick Look. |
-| 🪶 **Quiet** | Runs as a menu-bar agent — no Dock icon. The menu-bar icon can be hidden too. |
+| **Folders** | Press space → live listing of the contents: real Finder icons, sizes, and dates, folders first. |
+| **Archives** | `.zip` · `.zipx` · `.tar` · `.tar.gz` · `.tgz` · `.gz` — listed **without extracting**, via the system `libarchive`. |
+| **Quick Look feel** | The panel zooms out of the selected icon. Arrow keys move the Finder selection and Peek follows live. |
+| **Stays out of the way** | Anything that isn't a folder/archive falls straight through to macOS's native Quick Look. |
+| **Quiet** | Runs as a menu-bar agent — no Dock icon. The menu-bar icon can be hidden too. |
 
 ---
 
-## 📦 Download & install
+## Download & install
 
 1. **[⬇️ Download the latest release](https://github.com/bubbleee030/Peek/releases/latest)** (`Peek-1.0.zip`).
 2. Unzip it and drag **Peek.app** into your **Applications** folder.
@@ -40,13 +40,13 @@ inside. Everything else still uses macOS's native Quick Look, untouched.
      ```bash
      xattr -dr com.apple.quarantine /Applications/Peek.app
      ```
-4. Launch Peek. Look for the **👁 icon in your menu bar**.
+4. Launch Peek. Look for the **eye icon in your menu bar**.
 
 > Prefer to build it yourself? See [Build from source](#-build-from-source).
 
 ### Grant two permissions (one time)
 
-Peek needs these to work — the menu-bar **👁** menu walks you through them:
+Peek needs these to work — the menu-bar menu walks you through them:
 
 | Permission | Why | How |
 |---|---|---|
@@ -55,7 +55,7 @@ Peek needs these to work — the menu-bar **👁** menu walks you through them:
 
 ---
 
-## 🚀 How to use
+## How to use
 
 Select a folder or archive in Finder and tap **space**. That's it.
 
@@ -67,7 +67,7 @@ Select a folder or archive in Finder and tap **space**. That's it.
 | `space` / `esc` | Close the preview (your Finder selection stays put). |
 | click away | Close the preview. |
 
-**Menu-bar 👁 options:**
+**Menu-bar options:**
 
 - **Arrow Keys** — choose how arrows behave:
   - *Navigate Finder (Quick Look style)* — arrows change the Finder selection (default).
@@ -83,7 +83,7 @@ Select a folder or archive in Finder and tap **space**. That's it.
 
 ---
 
-## 🛠 Build from source
+## Build from source
 
 **Requirements:** macOS 13+, Xcode 16+, and [XcodeGen](https://github.com/yonyz/XcodeGen) (`brew install xcodegen`).
 
@@ -109,7 +109,7 @@ xcodebuild -project Peek.xcodeproj -scheme Peek -configuration Release \
 
 ---
 
-## 🧩 How it works
+## How it works
 
 - **`PeekCore`** (Swift package) — the pure, unit-tested core: `FolderSource`,
   `ArchiveSource` (a thin shim over the system `libarchive`), and `SourceFactory`.
