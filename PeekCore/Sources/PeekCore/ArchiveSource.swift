@@ -31,8 +31,7 @@ public struct ArchiveSource: ContentSource {
             throw ContentSourceError.cannotRead(Self.errorString(archive) ?? "Could not open archive")
         }
 
-        var items: [PreviewItem] = []
-        var total: Int64 = 0
+        let tree = TreeBuilder()
         while true {
             var entry: OpaquePointer?
             let result = archive_read_next_header(archive, &entry)
@@ -54,20 +53,11 @@ public struct ArchiveSource: ContentSource {
                 path = (url.lastPathComponent as NSString).deletingPathExtension
                 size = try Self.countData(archive)
             }
-            let name = Self.displayName(path)
-            if !name.isEmpty {
-                items.append(PreviewItem(
-                    name: name,
-                    isDirectory: isDir,
-                    sizeBytes: size,
-                    modified: mtime > 0 ? Date(timeIntervalSince1970: TimeInterval(mtime)) : nil
-                ))
-                if !isDir { total += size }
-            }
+            tree.add(path: path, isDirectory: isDir, size: size,
+                     modified: mtime > 0 ? Date(timeIntervalSince1970: TimeInterval(mtime)) : nil)
             _ = archive_read_data_skip(archive)
         }
-        items.sort(by: FolderSource.order)
-        return PreviewContents(items: items, totalSize: total)
+        return PreviewContents(items: tree.items(), totalSize: tree.totalSize)
     }
 
     /// A bare `.gz` (not `.tar.gz`) — usually one compressed file, not a tarball.
@@ -96,11 +86,57 @@ public struct ArchiveSource: ContentSource {
         let s = String(cString: c)
         return s.isEmpty ? nil : s
     }
+}
 
-    /// Archive entries are full paths ("sub/b.txt"); show them trimmed of a trailing slash.
-    static func displayName(_ path: String) -> String {
-        var p = path
-        if p.hasSuffix("/") { p.removeLast() }
-        return p
+/// Assembles flat archive paths into a folder tree. Archives often omit
+/// directory entries ("sub/b.txt" with no "sub/"), so parents are created on
+/// demand; macOS metadata that Finder's Archive Utility also hides is dropped.
+private final class TreeBuilder {
+    private final class Node {
+        var isDirectory = false
+        var size: Int64 = 0
+        var modified: Date?
+        var children: [String: Node] = [:]
+    }
+
+    private static let junk: Set<String> = ["__MACOSX", ".DS_Store"]
+    private let root = Node()
+    private(set) var totalSize: Int64 = 0
+
+    func add(path: String, isDirectory: Bool, size: Int64, modified: Date?) {
+        let parts = path.split(separator: "/").map(String.init).filter { $0 != "." && !$0.isEmpty }
+        guard !parts.isEmpty, !parts.contains(where: Self.junk.contains) else { return }
+
+        var node = root
+        for (i, part) in parts.enumerated() {
+            let child = node.children[part] ?? Node()
+            node.children[part] = child
+            node = child
+            if i < parts.count - 1 { child.isDirectory = true }
+        }
+        if isDirectory {
+            node.isDirectory = true
+        } else {
+            totalSize += size - node.size // a duplicate entry replaces the earlier one
+            node.size = size
+        }
+        node.modified = modified ?? node.modified
+    }
+
+    func items() -> [PreviewItem] { Self.items(of: root, prefix: "") }
+
+    private static func items(of node: Node, prefix: String) -> [PreviewItem] {
+        node.children.map { name, child in
+            let path = prefix + name
+            return PreviewItem(
+                name: name,
+                isDirectory: child.isDirectory,
+                sizeBytes: child.isDirectory ? 0 : child.size,
+                modified: child.modified,
+                path: path,
+                children: child.isDirectory ? items(of: child, prefix: path + "/") : nil
+            )
+        }
+        .sorted(by: FolderSource.order)
     }
 }

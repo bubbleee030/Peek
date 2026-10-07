@@ -4,13 +4,16 @@ import XCTest
 /// Builds archives in a temp dir from a known tree:
 ///   a.txt        -> "hello\n"  (6 bytes)
 ///   sub/b.txt    -> "hi\n"     (3 bytes)
-/// plus a bare gzip of a.txt (not a tarball).
+/// plus a bare gzip of a.txt (not a tarball), a zip with no directory
+/// entries but macOS junk (__MACOSX/, .DS_Store), and a tar of "./".
 enum ArchiveFixtures {
     struct Built {
         let root: URL
         let zip: URL
         let targz: URL
         let gz: URL
+        let zipNoDirsWithJunk: URL
+        let dotSlashTar: URL
     }
 
     static func build() throws -> Built {
@@ -31,7 +34,19 @@ enum ArchiveFixtures {
         try run("/usr/bin/gzip", ["-k", payload.appendingPathComponent("a.txt").path], cwd: nil)
         try fm.moveItem(at: payload.appendingPathComponent("a.txt.gz"), to: gz)
 
-        return Built(root: root, zip: zip, targz: targz, gz: gz)
+        let junkDir = root.appendingPathComponent("junk")
+        try fm.copyItem(at: payload, to: junkDir)
+        try "x".write(to: junkDir.appendingPathComponent(".DS_Store"), atomically: true, encoding: .utf8)
+        try fm.createDirectory(at: junkDir.appendingPathComponent("__MACOSX/sub"), withIntermediateDirectories: true)
+        try "x".write(to: junkDir.appendingPathComponent("__MACOSX/sub/._b.txt"), atomically: true, encoding: .utf8)
+        let zipNoDirsWithJunk = root.appendingPathComponent("nodirs.zip")
+        try run("/usr/bin/zip", ["-r", "-q", "-D", zipNoDirsWithJunk.path, "."], cwd: junkDir)
+
+        let dotSlashTar = root.appendingPathComponent("dotslash.tar")
+        try run("/usr/bin/tar", ["-cf", dotSlashTar.path, "-C", payload.path, "."], cwd: nil)
+
+        return Built(root: root, zip: zip, targz: targz, gz: gz,
+                     zipNoDirsWithJunk: zipNoDirsWithJunk, dotSlashTar: dotSlashTar)
     }
 
     static func cleanup(_ built: Built) {

@@ -4,7 +4,6 @@ import PeekCore
 
 struct PreviewView: View {
     @ObservedObject var model: PreviewViewModel
-    @State private var selection: PreviewItem.ID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +29,7 @@ struct PreviewView: View {
 
     @ViewBuilder private var summary: some View {
         if case let .loaded(contents) = model.state {
-            Text("\(contents.count) item\(contents.count == 1 ? "" : "s") • \(Self.size(contents.totalSize))")
+            Text("\(contents.count) item\(contents.count == 1 ? "" : "s") • \(Formatting.size(contents.totalSize))")
                 .font(.subheadline).foregroundStyle(.secondary)
         } else {
             Text(" ").font(.subheadline)
@@ -51,12 +50,54 @@ struct PreviewView: View {
             if contents.items.isEmpty {
                 Text("Empty").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(contents.items, selection: $selection) { item in
-                    row(item)
-                }
-                .listStyle(.inset)
+                // Keyed by URL so expansion/selection reset when the panel
+                // follows the Finder selection to another item.
+                ListingView(contents: contents).id(model.url)
             }
         }
+    }
+}
+
+/// The contents list. Archive folders expand in place; a lone top-level
+/// folder (the usual shape of a zipped project) starts expanded.
+private struct ListingView: View {
+    let contents: PreviewContents
+    @State private var selection: PreviewItem.ID?
+    @State private var expanded: Set<PreviewItem.ID>
+
+    init(contents: PreviewContents) {
+        self.contents = contents
+        let only = contents.items.count == 1 ? contents.items.first : nil
+        _expanded = State(initialValue: only?.children?.isEmpty == false ? [only!.id] : [])
+    }
+
+    var body: some View {
+        List(selection: $selection) {
+            rows(contents.items)
+        }
+        .listStyle(.inset)
+    }
+
+    /// Type-erased because it recurses.
+    private func rows(_ items: [PreviewItem]) -> AnyView {
+        AnyView(ForEach(items) { item in
+            if let children = item.children, !children.isEmpty {
+                DisclosureGroup(isExpanded: isExpanded(item.id)) {
+                    rows(children)
+                } label: {
+                    row(item)
+                }
+            } else {
+                row(item)
+            }
+        })
+    }
+
+    private func isExpanded(_ id: PreviewItem.ID) -> Binding<Bool> {
+        Binding(
+            get: { expanded.contains(id) },
+            set: { if $0 { expanded.insert(id) } else { expanded.remove(id) } }
+        )
     }
 
     private func row(_ item: PreviewItem) -> some View {
@@ -70,12 +111,12 @@ struct PreviewView: View {
                 .truncationMode(.middle)
             Spacer(minLength: 12)
             if let modified = item.modified {
-                Text(Self.date(modified))
+                Text(Formatting.date(modified))
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
-            Text(item.isDirectory ? "—" : Self.size(item.sizeBytes))
+            Text(item.isDirectory ? "—" : Formatting.size(item.sizeBytes))
                 .font(.callout)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
@@ -83,8 +124,10 @@ struct PreviewView: View {
         }
         .padding(.vertical, 1)
     }
+}
 
-    private static func size(_ bytes: Int64) -> String {
+private enum Formatting {
+    static func size(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
@@ -95,7 +138,7 @@ struct PreviewView: View {
         return f
     }()
 
-    private static func date(_ date: Date) -> String {
+    static func date(_ date: Date) -> String {
         dateFormatter.string(from: date)
     }
 }
