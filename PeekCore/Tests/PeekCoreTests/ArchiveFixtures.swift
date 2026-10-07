@@ -4,11 +4,13 @@ import XCTest
 /// Builds archives in a temp dir from a known tree:
 ///   a.txt        -> "hello\n"  (6 bytes)
 ///   sub/b.txt    -> "hi\n"     (3 bytes)
+/// plus a bare gzip of a.txt (not a tarball).
 enum ArchiveFixtures {
     struct Built {
         let root: URL
         let zip: URL
         let targz: URL
+        let gz: URL
     }
 
     static func build() throws -> Built {
@@ -25,7 +27,11 @@ enum ArchiveFixtures {
         let targz = root.appendingPathComponent("fixture.tar.gz")
         try run("/usr/bin/tar", ["-czf", targz.path, "-C", payload.path, "a.txt", "sub"], cwd: nil)
 
-        return Built(root: root, zip: zip, targz: targz)
+        let gz = root.appendingPathComponent("a.txt.gz")
+        try run("/usr/bin/gzip", ["-k", payload.appendingPathComponent("a.txt").path], cwd: nil)
+        try fm.moveItem(at: payload.appendingPathComponent("a.txt.gz"), to: gz)
+
+        return Built(root: root, zip: zip, targz: targz, gz: gz)
     }
 
     static func cleanup(_ built: Built) {

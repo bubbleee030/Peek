@@ -27,6 +27,17 @@ final class ArchiveSourceTests: XCTestCase {
         XCTAssertTrue(names.contains("sub/b.txt"), "names were \(names)")
     }
 
+    func testBareGzipListsSingleDecompressedFile() throws {
+        let fix = try ArchiveFixtures.build()
+        defer { ArchiveFixtures.cleanup(fix) }
+
+        let contents = try ArchiveSource(url: fix.gz).read()
+        XCTAssertEqual(contents.items.map(\.name), ["a.txt"])
+        XCTAssertEqual(contents.items.first?.isDirectory, false)
+        XCTAssertEqual(contents.items.first?.sizeBytes, 6)
+        XCTAssertEqual(contents.totalSize, 6)
+    }
+
     func testCorruptArchiveThrowsCannotRead() throws {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("bad-\(UUID().uuidString).zip")

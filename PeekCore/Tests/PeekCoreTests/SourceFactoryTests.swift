@@ -14,6 +14,14 @@ final class SourceFactoryTests: XCTestCase {
         XCTAssertTrue(SourceFactory.source(for: dir) is FolderSource)
     }
 
+    func testPackageDirectoryIsLeftToQuickLook() throws {
+        let dir = try tempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let app = dir.appendingPathComponent("Thing.app")
+        try FileManager.default.createDirectory(at: app, withIntermediateDirectories: true)
+        XCTAssertNil(SourceFactory.source(for: app))
+    }
+
     func testArchiveExtensionsReturnArchiveSource() {
         for name in ["x.zip", "x.tar", "x.tgz", "x.tar.gz", "x.gz"] {
             let url = URL(fileURLWithPath: "/tmp/\(name)")
