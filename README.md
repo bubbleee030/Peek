@@ -22,7 +22,7 @@ inside. Everything else still uses macOS's native Quick Look, untouched.
 | | |
 |---|---|
 | **Folders** | Press space → live listing of the contents: real Finder icons, sizes, and dates, folders first. |
-| **Archives** | `.zip` · `.zipx` · `.tar` · `.tar.gz` · `.tgz` · `.gz` — listed **without extracting**, via the system `libarchive`. |
+| **Archives** | `.zip` · `.zipx` · `.tar` · `.tar.gz` · `.tgz` · `.gz` — listed **without extracting**, via the system `libarchive`, as a collapsible folder tree. |
 | **Quick Look feel** | The panel zooms out of the selected icon. Arrow keys move the Finder selection and Peek follows live. |
 | **Stays out of the way** | Anything that isn't a folder/archive falls straight through to macOS's native Quick Look. |
 | **Quiet** | Runs as a menu-bar agent — no Dock icon. The menu-bar icon can be hidden too. |
@@ -65,7 +65,7 @@ Select a folder or archive in Finder and tap **space**. That's it.
 |---|---|
 | `↑` `↓` | Move the Finder selection — Peek re-previews each folder/archive live. Land on a normal file and it hands off to native Quick Look. |
 | `space` / `esc` | Close the preview (your Finder selection stays put). |
-| click away | Close the preview. |
+| switch apps | Close the preview. |
 
 **Menu-bar options:**
 
@@ -74,11 +74,8 @@ Select a folder or archive in Finder and tap **space**. That's it.
   - *Scroll the Preview* — arrows scroll the list inside the panel instead.
 - **Zoom Effect When Opening** — toggle the scale-from-icon open animation.
 - **Launch at Login** — start Peek automatically.
-- **Hide Menu-Bar Icon** — run fully invisible. To bring the icon back:
-  ```bash
-  defaults write com.bubbleee030.peek showMenuBarIcon -bool YES
-  ```
-  then relaunch Peek.
+- **Hide Menu-Bar Icon** — run fully invisible. To bring the icon back, open
+  Peek again from Applications (or Spotlight) while it's running.
 - **Quit Peek**.
 
 ---
@@ -115,8 +112,9 @@ xcodebuild -project Peek.xcodeproj -scheme Peek -configuration Release \
   `ArchiveSource` (a thin shim over the system `libarchive`), and `SourceFactory`.
 - **`App/Peek`** — a `CGEventTap` consumes **space** only when Finder is frontmost
   and the single selected item is a folder/archive; otherwise the keypress passes
-  through to native Quick Look. `FinderContext` reads the selection via Apple
-  Events, `FocusGuard` avoids hijacking space while you're renaming a file,
+  through to native Quick Look. `FinderContext` asks Finder for the selection
+  via Apple Events at the moment you press space (and follows it while a preview
+  is open), `FocusGuard` avoids hijacking space while you're renaming a file,
   `IconLocator` finds the selected icon's rect (via the Accessibility API) for the
   zoom animation, and the panel itself is SwiftUI hosted in an `NSPanel`.
 

@@ -20,6 +20,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar = MenuBarController(keyTap: keyTap)
     }
 
+    /// Opening Peek again while it runs (Finder, Spotlight, Launchpad) brings a
+    /// hidden menu-bar icon back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        menuBar?.showIcon()
+        return false
+    }
+
     private func openPreview(_ url: URL) {
         previewController.show(url: url, from: IconLocator.selectedItemRect(matching: url.lastPathComponent))
         // Only Finder-navigation mode follows the selection; polling is otherwise idle.

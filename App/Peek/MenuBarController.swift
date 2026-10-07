@@ -17,6 +17,11 @@ final class MenuBarController: NSObject {
         if defaults.bool(forKey: Self.showIconKey) { installItem() }
     }
 
+    func showIcon() {
+        defaults.set(true, forKey: Self.showIconKey)
+        if statusItem == nil { installItem() }
+    }
+
     private func installItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(systemSymbolName: "eye", accessibilityDescription: "Peek")
@@ -64,7 +69,7 @@ final class MenuBarController: NSObject {
 
         menu.addItem(.separator())
 
-        let hideItem = NSMenuItem(title: "Hide Menu-Bar Icon", action: #selector(hideIcon), keyEquivalent: "")
+        let hideItem = NSMenuItem(title: "Hide Menu-Bar Icon…", action: #selector(hideIcon), keyEquivalent: "")
         hideItem.target = self
         menu.addItem(hideItem)
 
@@ -107,6 +112,14 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func hideIcon() {
+        let alert = NSAlert()
+        alert.messageText = "Hide the menu-bar icon?"
+        alert.informativeText = "Peek keeps working in the background. To bring the icon back, open Peek again from your Applications folder."
+        alert.addButton(withTitle: "Hide Icon")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
         defaults.set(false, forKey: Self.showIconKey)
         if let statusItem {
             NSStatusBar.system.removeStatusItem(statusItem)
