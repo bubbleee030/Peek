@@ -17,6 +17,10 @@ final class PreviewController {
     private var mode: AppSettings.ArrowMode = .finderNavigation
     private var previousApp: NSRunningApplication?
     private var originRect: NSRect?
+    private var appActivationObserver: NSObjectProtocol?
+
+    /// Called whenever an open panel closes, by any route.
+    var onClose: (() -> Void)?
 
     private static let panelSize = NSSize(width: 560, height: 460)
 
@@ -55,6 +59,15 @@ final class PreviewController {
             // its selection, and focus is already "returned" when we close.
             panel.allowKey = false
             present(panel, target: target, from: iconRect, makeKey: false)
+            // The key tap only acts while Finder is frontmost, so close when the
+            // user switches away — otherwise the floating panel would linger.
+            appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+            ) { [weak self] note in
+                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                guard app?.bundleIdentifier != "com.apple.finder" else { return }
+                MainActor.assumeIsolated { self?.close(animated: true) }
+            }
         case .previewScroll:
             // Take focus so arrow keys scroll the list; remember Finder to restore.
             previousApp = NSWorkspace.shared.frontmostApplication
@@ -85,14 +98,18 @@ final class PreviewController {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = nil
 
+        if let appActivationObserver { NSWorkspace.shared.notificationCenter.removeObserver(appActivationObserver) }
+        appActivationObserver = nil
+
         guard let panel else { return }
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: panel)
+        onClose?()
         let appToRestore = (mode == .previewScroll) ? previousApp : nil
         self.panel = nil
         self.hosting = nil
         self.previousApp = nil
 
-        let dismiss = {
+        let dismiss: @MainActor () -> Void = {
             panel.orderOut(nil)
             appToRestore?.activate()
         }
@@ -104,7 +121,7 @@ final class PreviewController {
                 context.timingFunction = CAMediaTimingFunction(name: .easeIn)
                 panel.animator().setFrame(endRect, display: true)
                 panel.animator().alphaValue = 0
-            }, completionHandler: dismiss)
+            }, completionHandler: { MainActor.assumeIsolated { dismiss() } })
         } else {
             dismiss()
         }

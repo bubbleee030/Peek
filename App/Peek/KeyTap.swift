@@ -91,8 +91,9 @@ final class KeyTap {
         guard !focusGuard.isEditingText else { return passthrough }
 
         // Panel already open (Finder-navigation mode): space or esc closes it.
+        // A held space auto-repeats; swallow the repeats so it doesn't flicker.
         if isPreviewOpen() {
-            onClosePreview()
+            if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 { onClosePreview() }
             return nil
         }
 
@@ -100,7 +101,9 @@ final class KeyTap {
         // Plain space only — let shortcuts through.
         let modifiers: CGEventFlags = [.maskCommand, .maskControl, .maskAlternate]
         guard event.flags.intersection(modifiers).isEmpty else { return passthrough }
-        guard let url = finder.previewableSelection else { return passthrough } // non-folder → native QL
+        // Ask Finder now rather than trusting a cache, which can lag a click or
+        // arrow press made a moment ago.
+        guard let url = finder.freshPreviewableSelection() else { return passthrough } // non-folder → native QL
 
         onPreview(url)
         return nil // consume — native Quick Look does not open
