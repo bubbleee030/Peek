@@ -72,11 +72,6 @@ final class FinderContext {
         return previewableSelection
     }
 
-    /// The selected item when exactly one is selected, whatever its type.
-    var singleSelection: URL? {
-        selectedURLs.count == 1 ? selectedURLs.first : nil
-    }
-
     /// The single selected item, only if it is a folder or supported archive.
     var previewableSelection: URL? {
         guard selectedURLs.count == 1, let url = selectedURLs.first else { return nil }

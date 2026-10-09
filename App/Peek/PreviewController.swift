@@ -25,9 +25,7 @@ final class PreviewController {
 
     /// Opens (replacing any existing) a preview for `url`, zooming out from
     /// `iconRect` (the selected item's on-screen rect) when available.
-    /// `animated: false` appears instantly — used when taking over from native
-    /// Quick Look, whose own close animation would otherwise overlap ours.
-    func show(url: URL, from iconRect: NSRect?, animated: Bool = true) {
+    func show(url: URL, from iconRect: NSRect?) {
         close(animated: false)
         mode = AppSettings.arrowMode
 
@@ -57,7 +55,7 @@ final class PreviewController {
             // Never steal focus — Finder stays active so arrow keys keep driving
             // its selection, and focus is already "returned" when we close.
             panel.allowKey = false
-            present(panel, target: target, from: iconRect, makeKey: false, animated: animated)
+            present(panel, target: target, from: iconRect, makeKey: false)
             // The key tap only acts while Finder is frontmost, so close when the
             // user switches away — otherwise the floating panel would linger.
             appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -72,7 +70,7 @@ final class PreviewController {
             previousApp = NSWorkspace.shared.frontmostApplication
             panel.allowKey = true
             NSApp.activate(ignoringOtherApps: true)
-            present(panel, target: target, from: iconRect, makeKey: true, animated: animated)
+            present(panel, target: target, from: iconRect, makeKey: true)
             installLocalKeyMonitor()
             NotificationCenter.default.addObserver(
                 self, selector: #selector(resigned(_:)),
@@ -128,10 +126,10 @@ final class PreviewController {
 
     // MARK: - Presentation
 
-    private func present(_ panel: PreviewPanel, target: NSRect, from iconRect: NSRect?, makeKey: Bool, animated: Bool) {
+    private func present(_ panel: PreviewPanel, target: NSRect, from iconRect: NSRect?, makeKey: Bool) {
         let order = { makeKey ? panel.makeKeyAndOrderFront(nil) : panel.orderFrontRegardless() }
 
-        guard animated, AppSettings.zoomEffect else {
+        guard AppSettings.zoomEffect else {
             panel.setFrame(target, display: false)
             order()
             return
