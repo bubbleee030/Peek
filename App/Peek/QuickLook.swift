@@ -18,7 +18,8 @@ enum QuickLook {
     static func dismiss() { post(spaceKeyCode) }
 
     /// Whether native Quick Look's panel is on screen. Finder hosts it as a
-    /// floating-level window; its normal browser windows sit at level 0.
+    /// floating-level window; its normal browser windows sit at level 0. After
+    /// closing it lingers ~150ms fully transparent, so that counts as gone.
     static var isVisible: Bool {
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
                 as? [[String: Any]] else { return false }
@@ -26,6 +27,7 @@ enum QuickLook {
         return windows.contains {
             $0[kCGWindowOwnerName as String] as? String == "Finder"
                 && $0[kCGWindowLayer as String] as? Int == floating
+                && (($0[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1) > 0.05
         }
     }
 

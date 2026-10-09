@@ -23,16 +23,18 @@ final class PreviewController {
 
     var isOpen: Bool { panel != nil }
 
-    /// Opens (replacing any existing) a preview for `url`, zooming out from
-    /// `iconRect` (the selected item's on-screen rect) when available.
-    func show(url: URL, from iconRect: NSRect?) {
-        close(animated: false)
-        mode = AppSettings.arrowMode
+    /// A built but not yet shown panel. Handoffs from native Quick Look build
+    /// it while Quick Look is still closing, then show it without delay.
+    struct Prepared {
+        let url: URL
+        fileprivate let panel: PreviewPanel
+        fileprivate let hosting: NSHostingView<PreviewView>
+    }
 
+    /// Builds the panel for `url` off screen and starts loading its contents.
+    func prepare(url: URL) -> Prepared {
         let model = PreviewViewModel(url: url)
         let hosting = NSHostingView(rootView: PreviewView(model: model))
-        self.hosting = hosting
-
         let panel = PreviewPanel(
             contentRect: NSRect(origin: .zero, size: Self.panelSize),
             styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
@@ -45,7 +47,22 @@ final class PreviewController {
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.contentView = hosting
+        model.load()
+        return Prepared(url: url, panel: panel, hosting: hosting)
+    }
+
+    /// Opens (replacing any existing) a preview for `url`, zooming out from
+    /// `iconRect` (the selected item's on-screen rect) when available.
+    func show(url: URL, from iconRect: NSRect?) {
+        show(prepare(url: url), from: iconRect)
+    }
+
+    func show(_ prepared: Prepared, from iconRect: NSRect?) {
+        close(animated: false)
+        mode = AppSettings.arrowMode
+        let panel = prepared.panel
         self.panel = panel
+        self.hosting = prepared.hosting
 
         let target = centeredFrame(size: Self.panelSize)
         originRect = iconRect
@@ -77,7 +94,6 @@ final class PreviewController {
                 name: NSWindow.didResignKeyNotification, object: panel
             )
         }
-        model.load()
     }
 
     /// Swaps the previewed item without re-animating — used while the user
@@ -91,14 +107,17 @@ final class PreviewController {
         model.load()
     }
 
-    func close(animated: Bool) {
+    /// Closes the panel, zooming back into `iconRect` (else the rect it opened
+    /// from). `completion` runs once it is fully gone — handoffs to native
+    /// Quick Look wait for it so the two animations never overlap.
+    func close(animated: Bool, into iconRect: NSRect? = nil, completion: (@MainActor () -> Void)? = nil) {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = nil
 
         if let appActivationObserver { NSWorkspace.shared.notificationCenter.removeObserver(appActivationObserver) }
         appActivationObserver = nil
 
-        guard let panel else { return }
+        guard let panel else { completion?(); return }
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: panel)
         let appToRestore = (mode == .previewScroll) ? previousApp : nil
         self.panel = nil
@@ -108,15 +127,20 @@ final class PreviewController {
         let dismiss: @MainActor () -> Void = {
             panel.orderOut(nil)
             appToRestore?.activate()
+            completion?()
         }
 
         if animated && AppSettings.zoomEffect {
-            let endRect = originRect ?? Self.shrunk(panel.frame)
+            let endRect = iconRect ?? originRect ?? Self.shrunk(panel.frame)
             NSAnimationContext.runAnimationGroup({ context in
-                context.duration = AppSettings.animationDuration * 0.8
-                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                context.duration = AppSettings.Animation.closeDuration
+                context.timingFunction = AppSettings.Animation.closeTiming
                 panel.animator().setFrame(endRect, display: true)
-                panel.animator().alphaValue = 0
+                NSAnimationContext.runAnimationGroup { fade in
+                    fade.duration = AppSettings.Animation.closeDuration
+                    fade.timingFunction = AppSettings.Animation.closeFadeTiming
+                    panel.animator().alphaValue = 0
+                }
             }, completionHandler: { MainActor.assumeIsolated { dismiss() } })
         } else {
             dismiss()
@@ -141,9 +165,12 @@ final class PreviewController {
         panel.alphaValue = 0
         order()
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = AppSettings.animationDuration
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            context.duration = AppSettings.Animation.openDuration
+            context.timingFunction = AppSettings.Animation.openTiming
             panel.animator().setFrame(target, display: true)
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = AppSettings.Animation.openFadeDuration
             panel.animator().alphaValue = 1
         }
     }
