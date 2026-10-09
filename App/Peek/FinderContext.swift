@@ -16,6 +16,8 @@ final class FinderContext {
 
     /// Called on the main actor whenever the Finder selection changes while following.
     var onSelectionChange: (() -> Void)?
+    /// Checked on every tick; following stops once it returns false.
+    var shouldKeepFollowing: (() -> Bool)?
 
     /// Warms the Apple Event connection off the main thread. This is also where
     /// macOS shows the one-time Automation prompt, so it never blocks the tap.
@@ -23,7 +25,8 @@ final class FinderContext {
         queue.async { _ = FinderSelection.query(allowPrompt: true) }
     }
 
-    /// Starts polling the selection so an open preview can follow it.
+    /// Starts polling the selection so an open preview can follow it, until
+    /// `shouldKeepFollowing` says otherwise.
     func startFollowing() {
         guard timer == nil else { return }
         let timer = Timer(timeInterval: 0.12, repeats: true) { [weak self] _ in
@@ -36,6 +39,7 @@ final class FinderContext {
     func stopFollowing() { timer?.invalidate(); timer = nil }
 
     private func poll() {
+        if shouldKeepFollowing?() == false { stopFollowing(); return }
         guard !pollInFlight,
               NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder" else { return }
         pollInFlight = true

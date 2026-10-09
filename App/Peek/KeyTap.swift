@@ -8,21 +8,25 @@ final class KeyTap {
     private let onPreview: (URL) -> Void
     private let isPreviewOpen: () -> Bool
     private let onClosePreview: () -> Void
+    private let onPassToQuickLook: () -> Void
     private let focusGuard = FocusGuard()
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
 
     private static let spaceKeyCode: Int64 = 49
     private static let escKeyCode: Int64 = 53
+    private static let arrowKeyCodes: ClosedRange<Int64> = 123...126
 
     init(finder: FinderContext,
          isPreviewOpen: @escaping () -> Bool,
          onPreview: @escaping (URL) -> Void,
-         onClosePreview: @escaping () -> Void) {
+         onClosePreview: @escaping () -> Void,
+         onPassToQuickLook: @escaping () -> Void) {
         self.finder = finder
         self.isPreviewOpen = isPreviewOpen
         self.onPreview = onPreview
         self.onClosePreview = onClosePreview
+        self.onPassToQuickLook = onPassToQuickLook
     }
 
     static var hasAccessibility: Bool { AXIsProcessTrusted() }
@@ -80,9 +84,19 @@ final class KeyTap {
             return passthrough
         }
         guard type == .keyDown else { return passthrough }
+        // Keys Peek posts itself (Quick Look handoffs) must reach Finder untouched.
+        guard event.getIntegerValueField(.eventSourceUserData) != QuickLook.syntheticEventMarker else { return passthrough }
         let keycode = event.getIntegerValueField(.keyboardEventKeycode)
         guard keycode == Self.spaceKeyCode || keycode == Self.escKeyCode else {
-            return passthrough // arrows etc. flow to Finder untouched
+            // Arrows flow to Finder untouched, but native Quick Look may be
+            // open without Peek having seen it start (toolbar, context menu,
+            // opened before launch) — follow it so a folder can take over.
+            if Self.arrowKeyCodes.contains(keycode), !isPreviewOpen(),
+               NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder",
+               QuickLook.isVisible {
+                onPassToQuickLook()
+            }
+            return passthrough
         }
         // Only act while Finder is frontmost and not editing text (e.g. renaming).
         // In preview-scroll mode the panel is key (Peek is frontmost), so this
@@ -103,7 +117,10 @@ final class KeyTap {
         guard event.flags.intersection(modifiers).isEmpty else { return passthrough }
         // Ask Finder now rather than trusting a cache, which can lag a click or
         // arrow press made a moment ago.
-        guard let url = finder.freshPreviewableSelection() else { return passthrough } // non-folder → native QL
+        guard let url = finder.freshPreviewableSelection() else { // non-folder → native QL
+            onPassToQuickLook()
+            return passthrough
+        }
 
         onPreview(url)
         return nil // consume — native Quick Look does not open

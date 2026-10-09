@@ -19,9 +19,6 @@ final class PreviewController {
     private var originRect: NSRect?
     private var appActivationObserver: NSObjectProtocol?
 
-    /// Called whenever an open panel closes, by any route.
-    var onClose: (() -> Void)?
-
     private static let panelSize = NSSize(width: 560, height: 460)
 
     var isOpen: Bool { panel != nil }
@@ -103,7 +100,6 @@ final class PreviewController {
 
         guard let panel else { return }
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: panel)
-        onClose?()
         let appToRestore = (mode == .previewScroll) ? previousApp : nil
         self.panel = nil
         self.hosting = nil
