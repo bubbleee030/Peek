@@ -30,9 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    private func openPreview(_ url: URL) {
+    private func openPreview(_ url: URL, animated: Bool = true) {
         if QuickLook.isVisible { QuickLook.dismiss() }
-        previewController.show(url: url, from: IconLocator.selectedItemRect(matching: url.lastPathComponent))
+        previewController.show(url: url, from: IconLocator.selectedItemRect(matching: url.lastPathComponent),
+                               animated: animated)
         followSelection()
     }
 
@@ -49,22 +50,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         previewController.isOpen || QuickLook.isVisible || Date() < followGraceUntil
     }
 
-    /// Follows the selection in Finder-navigation mode: re-preview folders and
-    /// archives live, hand other files to native Quick Look, and take back over
-    /// from native Quick Look when the selection lands on a folder or archive.
+    /// Follows the selection in Finder-navigation mode. While Peek is open it
+    /// previews whatever single item is selected — files via the embedded
+    /// Quick Look renderer — so moving between files and folders never swaps
+    /// windows. Native Quick Look only takes over for multiple selections, and
+    /// hands back to Peek (instantly, no zoom) when it lands on a folder or archive.
     private func selectionChanged() {
         guard AppSettings.arrowMode == .finderNavigation else { return }
-        let url = finderContext.previewableSelection
         if previewController.isOpen {
-            if let url {
+            if let url = finderContext.singleSelection {
                 previewController.update(url: url, from: IconLocator.selectedItemRect(matching: url.lastPathComponent))
             } else {
                 previewController.close(animated: false)
+                guard !finderContext.selectedURLs.isEmpty else { return }
                 QuickLook.trigger()
                 followSelection()
             }
-        } else if let url, QuickLook.isVisible {
-            openPreview(url)
+        } else if let url = finderContext.previewableSelection, QuickLook.isVisible {
+            openPreview(url, animated: false)
         }
     }
 }

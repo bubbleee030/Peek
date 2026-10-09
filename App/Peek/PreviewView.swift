@@ -31,6 +31,8 @@ struct PreviewView: View {
         if case let .loaded(contents) = model.state {
             Text("\(contents.count) item\(contents.count == 1 ? "" : "s") • \(Formatting.size(contents.totalSize))")
                 .font(.subheadline).foregroundStyle(.secondary)
+        } else if case let .file(summary) = model.state {
+            Text(summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
         } else {
             Text(" ").font(.subheadline)
         }
@@ -46,6 +48,8 @@ struct PreviewView: View {
                 Text(message).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity).padding()
+        case .file:
+            QuickLookPreview(url: model.url).id(model.url)
         case .loaded(let contents):
             if contents.items.isEmpty {
                 Text("Empty").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)

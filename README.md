@@ -63,7 +63,7 @@ Select a folder or archive in Finder and tap **space**. That's it.
 
 | Key | Default (Quick Look style) |
 |---|---|
-| `↑` `↓` | Move the Finder selection — Peek re-previews each folder/archive live. Land on a normal file and it hands off to native Quick Look; arrow back onto a folder/archive and Peek takes over again. |
+| `↑` `↓` | Move the Finder selection — Peek re-previews each folder/archive live. Land on a normal file and it previews right in the same panel (no window swap); if native Quick Look is open, arrowing onto a folder/archive switches to Peek. |
 | `space` / `esc` | Close the preview (your Finder selection stays put). |
 | switch apps | Close the preview. |
 
